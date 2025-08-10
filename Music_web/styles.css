@@ -236,7 +236,7 @@ button[type="submit"]:hover {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 20px;
+    gap: 15px; /* Adjusted gap for new buttons */
     margin: 20px 0;
 }
 
@@ -245,7 +245,7 @@ button[type="submit"]:hover {
     border: none;
     color: var(--text);
     cursor: pointer;
-    font-size: 20px;
+    font-size: 18px; /* Adjusted size for new buttons */
     width: 40px;
     height: 40px;
     transition: transform 0.2s ease, color 0.2s ease;

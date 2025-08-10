@@ -18,12 +18,15 @@ const totalDurationEl = document.getElementById('totalDuration');
 const volumeSlider = document.getElementById('volumeSlider');
 const exploreList = document.getElementById('exploreList');
 const likeBtn = document.getElementById('likeBtn');
-const YOUTUBE_API_KEY = 'AIzaSyDLlSb59G9O0Ja2drbOwXzI_Si_Vh4vm24'; 
+const rewindBtn = document.getElementById('rewindBtn');
+const forwardBtn = document.getElementById('forwardBtn');
 
+const YOUTUBE_API_KEY = 'AIzaSyBpZR-wXdghIuErfUcPb3EhDnmj1Q8Sj1o';
 let ytPlayer;
 let progressUpdateInterval;
 let playlist = [], currentIndex = -1;
 
+// ----- LIKE SYSTEM -----
 const getLikedSongs = () => JSON.parse(localStorage.getItem('likedSongs')) || [];
 const isSongLiked = (videoId) => getLikedSongs().includes(videoId);
 const toggleLikeStatus = (videoId) => {
@@ -44,6 +47,7 @@ const updateLikeButtonUI = (videoId) => {
     }
 };
 
+// ----- THEME TOGGLE -----
 function setTheme(isLight) {
     const icon = themeToggleBtn.querySelector('i');
     document.body.classList.toggle('light', isLight);
@@ -54,6 +58,7 @@ function setTheme(isLight) {
 themeToggleBtn.addEventListener('click', () => setTheme(!document.body.classList.contains('light')));
 setTheme(localStorage.getItem('theme') === 'light');
 
+// ----- UTILS -----
 const showLoading = () => { loadingSpinner.style.display = 'block'; resultsDiv.style.display = 'none'; };
 const hideLoading = () => { loadingSpinner.style.display = 'none'; resultsDiv.style.display = 'grid'; };
 const formatTime = (secs) => {
@@ -63,6 +68,7 @@ const formatTime = (secs) => {
     return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
 };
 
+// ----- SEARCH -----
 async function searchAndRender(term) {
     showLoading();
     if (!YOUTUBE_API_KEY || YOUTUBE_API_KEY === 'YOUR_NEW_API_KEY_HERE') {
@@ -121,14 +127,15 @@ function renderExploreSection(songs) {
     });
 }
 
+// ----- YOUTUBE PLAYER -----
 function onYouTubeIframeAPIReady() {}
 function createYouTubePlayer(videoId) {
     if (ytPlayer) {
-        ytPlayer.cueVideoById(videoId);
+        ytPlayer.loadVideoById(videoId); // play immediately
     } else {
         ytPlayer = new YT.Player('youtubePlayer', {
             height: '0', width: '0', videoId: videoId,
-            playerVars: { 'playsinline': 1 },
+            playerVars: { 'playsinline': 1, 'autoplay': 1 },
             events: { 'onStateChange': onPlayerStateChange }
         });
     }
@@ -142,7 +149,6 @@ function onPlayerStateChange(event) {
         case YT.PlayerState.CUED:
             playIcon.classList.replace('fa-pause', 'fa-play');
             totalDurationEl.textContent = formatTime(duration);
-            ytPlayer.playVideo();
             break;
         case YT.PlayerState.PLAYING:
             playIcon.classList.replace('fa-play', 'fa-pause');
@@ -169,6 +175,12 @@ function updatePlayerProgress() {
     }
 }
 
+function seek(seconds) {
+    if (!ytPlayer || typeof ytPlayer.getCurrentTime !== 'function') return;
+    const newTime = ytPlayer.getCurrentTime() + seconds;
+    ytPlayer.seekTo(Math.max(0, newTime), true);
+}
+
 function loadSong(index) {
     if (index < 0 || index >= playlist.length) return;
     currentIndex = index;
@@ -185,7 +197,8 @@ function loadSong(index) {
     updateLikeButtonUI(song.videoId);
     createYouTubePlayer(song.videoId);
 }
-  
+
+// ----- EVENT LISTENERS -----
 searchForm.addEventListener('submit', e => { e.preventDefault(); searchAndRender(searchInput.value.trim()); });
   
 closePanelBtn.addEventListener('click', () => {
@@ -208,13 +221,19 @@ playPauseBtn.addEventListener('click', () => {
 nextBtn.addEventListener('click', () => loadSong((currentIndex + 1) % playlist.length));
 prevBtn.addEventListener('click', () => loadSong((currentIndex - 1 + playlist.length) % playlist.length));
 
+rewindBtn.addEventListener('click', () => seek(-10));
+forwardBtn.addEventListener('click', () => seek(10));
+
 progressContainer.addEventListener('click', e => {
     if (!ytPlayer || typeof ytPlayer.getDuration !== 'function' || ytPlayer.getDuration() <= 0) return;
     const rect = progressContainer.getBoundingClientRect();
     ytPlayer.seekTo(((e.clientX - rect.left) / rect.width) * ytPlayer.getDuration(), true);
 });
   
-volumeSlider.addEventListener('input', () => { if (ytPlayer && typeof ytPlayer.setVolume === 'function') ytPlayer.setVolume(volumeSlider.value * 100); });
+volumeSlider.addEventListener('input', () => { 
+    if (ytPlayer && typeof ytPlayer.setVolume === 'function') 
+        ytPlayer.setVolume(volumeSlider.value * 100); 
+});
   
 likeBtn.addEventListener('click', () => {
     if (currentIndex === -1) return;
